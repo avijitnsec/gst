@@ -3,8 +3,9 @@ from time import sleep
 
 from threading import Thread
 gi.require_version("Gst", "1.0")
+gi.require_version("GstApp", "1.0")
 
-from gi.repository import Gst, GLib
+from gi.repository import Gst, GstApp, GLib 
 
 Gst.init()
 
@@ -28,9 +29,12 @@ pipeline = Gst.parse_launch(" ksvideosrc \
         ! timeoverlay halignment=left valignment=bottom text='Stream time:' shaded-background=true  \
         ! videomixer  \
         ! rippletv ! videoconvert \
-        ! autovideosink window-width=640 window-height=480 \
+        ! appsink name=sink \
         ")
+        # ! autovideosink window-width=640 window-height=480 \
+        
 
+appsink = pipeline.get_by_name("sink")
 pipeline.set_state(Gst.State.PLAYING)
 
 t = 180*60
@@ -43,6 +47,14 @@ try:
         print (txt.get_property("text"))
         txt.set_property("text", str(t))
         t = t-1
+
+        sample = appsink.try_pull_sample(Gst.SECOND)
+        if sample is None:
+            continue
+    
+        print("Got a sample!")
+        # buffer = sample.gst_sample_get_buffer()
+
 
 except KeyboardInterrupt:
     pass
